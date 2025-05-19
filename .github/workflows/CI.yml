@@ -1,0 +1,44 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Install dependencies
+        run: npm ci
+      - name: Run linter
+        run: npm run lint
+      - name: Build project
+        run: npm run build
+      # - name: Run tests
+      #   run: npm test
+        
+      - name: Scan dependencies with Trivy
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: 'sarif'
+          output: 'trivy-results.sarif,trivy-results.txt'
+          severity: CRITICAL,HIGH
+          
+      # Discord 알림 설정
+      - name: Send Discord notification for vulnerabilities
+        if: always() && steps.check-vulnerabilities.outputs.has_vulnerabilities == 'true'
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          title: "보안 취약점 발견 알림"
+          description: "Trivy 스캔 결과 중요(CRITICAL) 또는 높음(HIGH) 수준의 취약점이 발견되었습니다."
+          color: 0xff0000
+          url: "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"

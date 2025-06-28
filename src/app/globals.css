@@ -14,7 +14,7 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
+    --background: #ffffff;
     --foreground: #ededed;
   }
 }
@@ -24,6 +24,41 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.login-background {
+  background-image: url('/login_background.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.login-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+.login-box{
+  width: 100%;
+  max-width: 28rem; /* 448px (기존 max-w-md) */
+  padding: 2rem 2rem; /* 32px */
+  
+}
+
+.login-title{
+  font-size: 4rem;
+  font-weight: bold;
+  text-align: center;
+  color: black;
+  position: relative;
+  top: 0px;
+  
+  
+}
+
+
 
 
 .stock-detail-container {

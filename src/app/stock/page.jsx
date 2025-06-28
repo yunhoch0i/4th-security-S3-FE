@@ -13,7 +13,7 @@ export default function StockList() {
     setIsLoading(true);
     try {
       const query = searchTerm ? `?search=${encodeURIComponent(searchTerm)}` : '';
-      const url = activeTab === '주식' ? `/api/stock${query}` : `/api/coins`;
+      const url = `/api/stock${query}`
       const response = await fetch(url);
       if (!response.ok) throw new Error('데이터를 불러오는 데 실패했습니다.');
 
@@ -40,32 +40,12 @@ export default function StockList() {
         <input
           type="text"
           className="search-bar"
-          placeholder="주식 또는 코인 검색"
+          placeholder="주식 검색"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
       </div>
 
-      <div className="tab-container">
-        <button
-          className={`tab ${activeTab === '주식' ? 'active' : ''}`}
-          onClick={() => {
-            setActiveTab('주식');
-            setSearchTerm('');
-          }}
-        >
-          주식
-        </button>
-        <button
-          className={`tab ${activeTab === '코인' ? 'active' : ''}`}
-          onClick={() => {
-            setActiveTab('코인');
-            setSearchTerm('');
-          }}
-        >
-          코인
-        </button>
-      </div>
 
       {isLoading ? (
         <div className="loading">데이터를 불러오는 중...</div>

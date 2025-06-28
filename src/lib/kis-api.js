@@ -15,7 +15,10 @@ async function getCachedToken() {
     console.log('Cached token expired');
     return null;
   } catch (err) {
-    console.log('No valid token cache found:', err.message);
+    // 파일이 없는 경우는 정상적인 상황일 수 있으므로, 에러 메시지를 간소화합니다.
+    if (err.code !== 'ENOENT') {
+        console.error('Failed to read token cache:', err.message);
+    }
     return null;
   }
 }
@@ -32,6 +35,11 @@ async function setCachedToken(token) {
 
 // 새 토큰 발급
 async function fetchNewToken() {
+  // 환경 변수가 설정되지 않았다면 에러를 발생시켜 미리 문제를 파악합니다.
+  if (!process.env.KOREA_INVEST_APP_KEY || !process.env.KOREA_INVEST_APP_SECRET) {
+    throw new Error('KOREA_INVEST_APP_KEY and KOREA_INVEST_APP_SECRET must be set in .env.local');
+  }
+
   try {
     const response = await fetch('https://openapi.koreainvestment.com:29443/oauth2/tokenP', {
       method: 'POST',
@@ -46,14 +54,17 @@ async function fetchNewToken() {
     });
 
     if (!response.ok) {
+      const errorBody = await response.text();
+      console.error('Token fetch response error:', errorBody);
       throw new Error(`Token fetch failed: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
     return data.access_token;
   } catch (error) {
-    console.error('Token fetch error:', error.message);
-    return null;
+    console.error('Token fetch error:', error);
+    // 'fetch failed' 에러는 여기서 다시 던져서 상위 호출자가 인지하도록 합니다.
+    throw error;
   }
 }
 
@@ -62,21 +73,30 @@ export async function getAccessToken() {
   const cachedToken = await getCachedToken();
   if (cachedToken) return cachedToken;
 
-  const newToken = await fetchNewToken();
-  if (newToken) {
-    await setCachedToken(newToken);
-    return newToken;
+  try {
+    const newToken = await fetchNewToken();
+    if (newToken) {
+      await setCachedToken(newToken);
+      return newToken;
+    }
+    return null;
+  } catch (error) {
+    // fetchNewToken에서 발생한 에러를 그대로 다시 던집니다.
+    throw new Error('Failed to obtain a new access token.');
   }
-  return null;
 }
 
-// API 호출 시 401 에러 처리 포함
+// API 호출
 export async function fetchWithToken(url, options) {
-  let token = await getAccessToken();
-  if (!token) {
-    throw new Error('Failed to obtain access token');
+  let token;
+  try {
+    token = await getAccessToken();
+  } catch (error) {
+    // getAccessToken에서 발생한 에러를 처리합니다.
+    console.error('Error getting access token:', error.message);
+    throw new Error('Failed to obtain access token.');
   }
-
+  
   const headers = {
     'Content-Type': 'application/json',
     'authorization': `Bearer ${token}`,
@@ -85,23 +105,18 @@ export async function fetchWithToken(url, options) {
     ...options.headers,
   };
 
-  let response = await fetch(url, { ...options, headers });
-
-  // 401 에러 시 토큰 갱신 후 재시도
-  if (response.status === 401) {
-    console.log('401 Unauthorized, refreshing token...');
-    const newToken = await fetchNewToken();
-    if (!newToken) {
-      throw new Error('Failed to refresh access token');
-    }
-    await setCachedToken(newToken);
-    headers.authorization = `Bearer ${newToken}`;
-    response = await fetch(url, { ...options, headers });
-  }
+  const response = await fetch(url, { ...options, headers });
+  const responseText = await response.text();
 
   if (!response.ok) {
+    console.error('API call failed with status:', response.status, 'Response:', responseText);
     throw new Error(`API call failed: ${response.status} ${response.statusText}`);
   }
 
-  return response.json();
+  try {
+    return JSON.parse(responseText);
+  } catch (error) {
+    console.error('Failed to parse JSON:', responseText);
+    throw new Error('Unexpected response format from API');
+  }
 }

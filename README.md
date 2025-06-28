@@ -25,14 +25,15 @@ src/
 │   │   ├── page.jsx
 │   │   ├── create.jsx
 │   │   └── [contestId].jsx
+│   │── api/                      # axios 래퍼 및 API 함수
+│   │   └── stock/           
+│   │        └── route.js     ← ⚠️ `stock.ts` → `stock.js` 로 변경 필요
 │   ├── login/                # /login, /login/signup
 │   ├── rank/                 # /rank
 │   ├── stock/                # /stock, /stock/[id]
 │   ├── trade/
 │   └── tutorial/
 │
-├── api/                      # axios 래퍼 및 API 함수
-│   └── stock.js              ← ⚠️ `stock.ts` → `stock.js` 로 변경 필요
 │
 ├── components/               # UI 컴포넌트
 │   ├── Common/               # Button, Input 등
